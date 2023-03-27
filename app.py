@@ -20,6 +20,23 @@ def chat():
 def messageReceived(methods=['GET','POST']):
     print("Message was received!!")
 
+# 로그인 서버
+@app.route("/login", methods=['GET','POST'])
+def login():
+    if request.method == 'GET':
+        return render_template("login.html")
+    else:
+        uid = request.form.get('uid')
+        upw = request.form.get('upw')
+        print(uid)
+        #auth(id: str, password: str, methods: Authenticator)
+        result = auth(id=uid, password=upw, methods=ClassicSession)
+        if result.is_auth:
+            return redirect(url_for("chat"))
+        else:
+            #return redirect(url_for("login"))
+            return render_template("login.html")    
+
 #소켓 서버 run
 if __name__ == '__main__':
     socketio.run(app)
