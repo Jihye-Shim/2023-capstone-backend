@@ -1,25 +1,25 @@
-from flask import Flask, request, render_template 
-#render_template: HTML 파일 렌더링 
+from flask import Flask, render_template, request, redirect, url_for
+from flask_socketio import SocketIO, emit
+from sejong_univ_auth import ClassicSession, auth
 
 app = Flask(__name__)
 
-#서버
-@app.route("/")
-def Hello():
-    return "Sejong-ChatBot"
+app.config['SECRET_KEY'] = 'password'
+socketio = SocketIO(app)
 
-#GET: url에 파라미터 함께 넘김
-#POST: http 내부에 데이터 추가(보안)
-@app.route("/login", methods=['GET','POST'])
-def login():
-    if request.method == 'GET':
-        return render_template("login.html")
-    else:
-        uid = request.form.get('uid')
-        upw = request.form.get('upw')
-        print(uid, upw)
-        return "Post success"
+@socketio.on('message')
+def handleMessage(msg):
+    print('Message:' + msg)
+    socketio.send(msg, broadcast = True)
 
+# 채팅 서버
+@app.route("/chat")
+def chat():
+    return render_template("chat.html")
+
+def messageReceived(methods=['GET','POST']):
+    print("Message was received!!")
+
+#소켓 서버 run
 if __name__ == '__main__':
-    app.debug = True
-    app.run()
+    socketio.run(app)
