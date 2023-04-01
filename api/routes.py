@@ -18,11 +18,12 @@ def start():
 @main.route("/login", methods=['GET','POST'])
 def login():
     if request.method == 'GET':
-        return render_template("login.html")
+        return  {"uid": "id",
+                 "upw": "password"}
 
     elif request.method == 'POST':
-        uid = request.form.get("uid")
-        upw = request.form.get("upw")
+        uid = request.get_json("uid")
+        upw = request.get_json("upw")
         #auth(id: str, password: str, methods: Authenticator)
         result = auth(id=uid, password=upw, methods=ClassicSession)
         if result.is_auth:
@@ -38,4 +39,7 @@ def chat():
     user = session.get("uid", "")
     if user == "":
         return redirect(url_for("main.login"))
-    return render_template('chat.html', user = user)
+#    return render_template('chat.html', user = user)
+    return {"uid":"학번",
+        "umsg":"user input",
+        "bmsg":"bot output"}
