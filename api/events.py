@@ -1,19 +1,33 @@
 #socket event
 from flask import session
-from flask_socketio import emit, join_room, Namespace
+from flask_socketio import emit, join_room, leave_room, Namespace
 
-class ChatNamepsace(Namespace):    
+class ChatNamepsace(Namespace): 
+
+    def on_connect(self):
+        pass
+
+    def on_disconnect(self):
+        pass
     
-    def loggedin(self, data):
-        user = session.get('uid')
+    def on_loggedin(self, data):
+        user = session.get("uid")
         join_room(user)
-        emit('status', {'msg': "serong"}, room=user)
+        emit('status', {"msg": "serong"}, room=user)
 
-    def sendtext(self, data):
-        user = session.get('uid')
-        print(data['msg']) #추후 db 연동
-        emit('message', {'msg': session.get('uid') + ':' + data['msg']}, room=user)
+    def on_sendtext(self, data):
+        user = session.get("uid")
+        emit('text', {"msg": session.get("uid") + ':' + data["msg"]}, room=user)
 
-    def loggedout(self, data):
-        if "uid" in session:
-            session.pop("uid")
+    def on_sendreply(self, data):
+        user = session.get("uid")
+        emit('reply', {"msg": 'bot: ' + data["msg"] + "(자동응답)"}, room=user)
+'''
+    def on_quickbutton(self, data):
+        user = session.get("uid")
+        emit('quick', {"msg": "button message"}, room=user)
+'''
+    def on_loggedout(self, data):
+        session.pop("uid")
+        user = session.get("uid")
+        leave_room(user)
