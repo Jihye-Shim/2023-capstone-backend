@@ -21,13 +21,21 @@ class ChatNamepsace(Namespace):
 
     def on_sendreply(self, data):
         user = session.get("uid")
-        emit('reply', {"msg": 'bot: ' + data["msg"] + "(자동응답)"}, room=user)
-'''
+        emit('reply', {"msg": 'bot:' + data["msg"] + "(자동응답)"}, room=user)
+
+    def on_loggedout(self, data):
+        user = session.get("uid")
+        if user:
+            session.pop("uid")
+            print("session pop")
+            session.modified = True
+            leave_room(user)
+
+        return ''
+
+
+    '''
     def on_quickbutton(self, data):
         user = session.get("uid")
         emit('quick', {"msg": "button message"}, room=user)
-'''
-    def on_loggedout(self, data):
-        session.pop("uid")
-        user = session.get("uid")
-        leave_room(user)
+    '''
