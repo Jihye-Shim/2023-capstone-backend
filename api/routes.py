@@ -1,89 +1,78 @@
 #server
-from flask import session, render_template, request, redirect, url_for, Blueprint
+from flask import render_template, request, Response, jsonify, Blueprint
 from sejong_univ_auth import ClassicSession, auth
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+import json
 from .db import db, User
+#from .model import answer
 
 main = Blueprint('main', __name__)
-main.secret_key = "secretkey"  # for session
 
-#main
-@main.route("/")
-def start():
-    if "uid" in session:
-        print(session["uid"])
-        return redirect(url_for("main.chat"))
+#user info
+@main.route("/user", methods=['GET'])
+@jwt_required()
+def get_userinfo():
+    user_id = get_jwt_identity()
+    user = User.query.filter_by(id=user_id).first()
+    if user:
+        user_info = {'id': user.id,
+                'name': user.name,
+                'major': user.major,
+                'grade': user.grade,
+                'status': user.status,
+                'read_certification': json.loads(user.read_certification)}
+        print(user_info)
+        return jsonify(user_info), 200
     else:
-        return redirect(url_for("main.login"))
-'''
-#test code
+        return jsonify({'error':'user not found'}), 404
+
 #login page
 @main.route("/login", methods=['GET','POST'])
 def login():
     if request.method == 'GET':
         return render_template("login.html")
-    elif request.method == 'POST':
-        uid = request.form.get("uid")
-        upw = request.form.get("upw")
+    elif request.method =='POST':
+        uid = request.form.get("id")
+        upw = request.form.get("pw")
         #auth(id: str, password: str, methods: Authenticator)
         result = auth(id=uid, password=upw, methods=ClassicSession)
-        if result.is_auth:  #login success
+        if result.is_auth:  #oauth login success
+            user_info = {'id': uid,
+                        'name': result.body['name'],
+                        'major': result.body['major'],
+                        'grade': result.body['grade'],
+                        'status': result.body['status'],
+                        'read_certification': result.body['read_certification']}
             record = User.query.filter_by(id=uid).first()
-            if record:
-                pass
-            else:
-                name = result.body['name']
-                major = result.body['major']
-                grade = result.body['grade']
-                user = User(uid, name, major, grade)
+            if not record:
+                user = User(uid, user_info['name'], user_info['major'], user_info['grade'], user_info['status'], user_info['read_certification'])
                 db.session.add(user)
                 db.session.commit()
-            if "uid" not in session:
-                session["uid"] = uid
-            return redirect(url_for("main.chat"))
-        else:
-            return redirect(url_for("main.login"))
-        
-#chatbot page
-@main.route("/chat")    
-def chat():
-    user = session.get("uid", "")
-    if user == "":
-        return redirect(url_for("main.login"))
-    return render_template("chat.html", user = user)
+            access_token = create_access_token(identity=uid)
+            print(access_token)
+            return jsonify({"user":user_info, "access_token":access_token}), result.status_code
+        else: #login fail
+            return Response(result.code, 401)
 
 '''
+@main.route('/logout', methods=['GET'])
+@jwt_required()
+def logout():
+    token = request.args.get('access_token')
+    #if success
+    result = {'success': True, 
+              'message': 'logout success'}
+    return jsonify(result), 200
+    #else
 
-#login page
-@main.route("/login", methods=['GET','POST'])
-def login():
-    if request.method == 'GET':
-        return render_template("index.html")
-    elif request.method == 'POST':
-        uid = request.get_json("uid")
-        upw = request.get_json("upw")
-        #auth(id: str, password: str, methods: Authenticator)
-        result = auth(id=uid, password=upw, methods=ClassicSession)
-        if result.is_auth:
-            record = User.query.filter_by(id=uid).first()
-            if record:
-                pass
-            else:
-                name = result.body['name']
-                major = result.body['major']
-                grade = result.body['grade']
-                user = User(uid, name, major, grade)
-                db.session.add(user)
-                db.session.commit()
-            if "uid" not in session:
-                session["uid"] = uid
-            return redirect(url_for("main.chat"))
-        else:
-            return redirect(url_for("main.login"))
-        
 #chatbot page
 @main.route("/chat")    
 def chat():
-    user = session.get("uid", "")
-    if user == "":
-        return redirect(url_for("main.login"))
-    return render_template("index.html", user = user)
+    return
+
+#predict test page
+@main.route("/predict")
+def test():
+    return str(answer)
+
+'''
