@@ -1,12 +1,12 @@
 #DB setting: MariaDB, SQLAlchemy
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
+import json
 
 db = SQLAlchemy()
 
 def init_app(app):
     db.init_app(app)
-    print("connect!")
     
 def create_all():
     db.create_all()
@@ -15,18 +15,22 @@ def create_all():
 class User(db.Model):
     __tablename__ = 'test_user'
     id = db.Column(db.String(10), primary_key=True)
-    username = db.Column(db.String(30), nullable=False)
+    name = db.Column(db.String(30), nullable=False)
     major = db.Column(db.String(30), nullable=False)
     grade = db.Column(db.String(3), nullable=False)
+    status = db.Column(db.String(10), nullable=False)
+    read_certification = db.Column(db.JSON, nullable=False)
 
-    def __init__(self, user_id, username, major, grade):
+    def __init__(self, user_id, name, major, grade, status, read_certification):
         self.id = user_id
-        self.username = username
+        self.name = name
         self.major = major
         self.grade = grade
+        self.status = status
+        self.read_certification = json.dumps(read_certification, ensure_ascii=False)
 
     def __repr__(self):
-        return f"{self.__class__.__tablename__}(id={self.id}, username={self.username}, major={self.major}, grade={self.grade})"
+        return f"{self.__class__.__tablename__}(id={self.id}, name={self.name}, major={self.major}, grade={self.grade}), status={self.status}, read_certification={json.loads(self.read_certification)}"
 
 #user message table
 class Input(db.Model):
