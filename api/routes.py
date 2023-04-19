@@ -1,18 +1,40 @@
 #server
-from flask import render_template, request, Response, jsonify, Blueprint
+from flask import current_app, request, render_template, Response, jsonify, Blueprint
 from sejong_univ_auth import ClassicSession, auth
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, get_jwt
 import json
+
 from .db import db, User
 #from .model import answer
 
 main = Blueprint('main', __name__)
 
-#user info
+#user info: token
 @main.route("/user", methods=['GET'])
 @jwt_required()
 def get_userinfo():
+    jti = get_jwt()['jti']
+    print(jti)
+    if jwt_redis_blocklist.exists(jti): #만료된 토큰의 접근 차단
+        return jsonify(msg='Unauthorized'), 401
+    
     user_id = get_jwt_identity()
+    user = User.query.filter_by(id=user_id).first()
+    if user:
+        user_info = {'id': user.id,
+                'name': user.name,
+                'major': user.major,
+                'grade': user.grade,
+                'status': user.status,
+                'read_certification': json.loads(user.read_certification)}
+        return jsonify(user_info), 200
+    else:
+        return jsonify({'error':'user not found'}), 404
+
+'''
+#user info: user_id parameter
+@main.route("/user/<string:user_id>", methods=['GET'])
+def get_userinfo(user_id):
     user = User.query.filter_by(id=user_id).first()
     if user:
         user_info = {'id': user.id,
@@ -25,15 +47,17 @@ def get_userinfo():
         return jsonify(user_info), 200
     else:
         return jsonify({'error':'user not found'}), 404
+'''
 
 #login page
 @main.route("/login", methods=['GET','POST'])
 def login():
     if request.method == 'GET':
-        return render_template("login.html")
+        return render_template("index.html")
     elif request.method =='POST':
-        uid = request.form.get("id")
-        upw = request.form.get("pw")
+        data = request.get_json()
+        uid = data.get('id')  
+        upw = data.get('pw')
         #auth(id: str, password: str, methods: Authenticator)
         result = auth(id=uid, password=upw, methods=ClassicSession)
         if result.is_auth:  #oauth login success
@@ -49,30 +73,36 @@ def login():
                 db.session.add(user)
                 db.session.commit()
             access_token = create_access_token(identity=uid)
-            print(access_token)
-            return jsonify({"user":user_info, "access_token":access_token}), result.status_code
+            return jsonify({'user':user_info, 'access_token':access_token}), result.status_code
         else: #login fail
             return Response(result.code, 401)
+        
+#logout
+import redis
+jwt_redis_blocklist = redis.StrictRedis(
+    host="localhost", port=6379, db=0, decode_responses=True
+)
 
-'''
-@main.route('/logout', methods=['GET'])
+@main.route("/logout", methods=['DELETE'])
 @jwt_required()
 def logout():
-    token = request.args.get('access_token')
-    #if success
-    result = {'success': True, 
-              'message': 'logout success'}
-    return jsonify(result), 200
+    jti = get_jwt()['jti']
+    print(jti)
+    access_expires = current_app.config['JWT_ACCESS_TOKEN_EXPIRES']
+    if not jwt_redis_blocklist.exists(jti):
+        jwt_redis_blocklist.set(jti, "", ex=access_expires)
+    return jsonify(msg='Token revoked'), 200
     #else
 
+'''
 #chatbot page
-@main.route("/chat")    
+@main.route("/chat")
+@jwt_required()
 def chat():
-    return
+    return render_template("index.html")
 
 #predict test page
 @main.route("/predict")
 def test():
     return str(answer)
-
 '''
