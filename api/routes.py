@@ -2,16 +2,13 @@
 from flask import current_app, request, render_template, Response, jsonify, Blueprint
 from sejong_univ_auth import ClassicSession, auth
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity, get_jwt
-from datetime import timedelta
 import os
 import json
-
+import redis
 from .db import db, User
-#from .model import answer
 
 main = Blueprint('main', __name__)
 
-import redis
 jwt_redis_blocklist = redis.StrictRedis(host=os.getenv("REDIS_HOST"), port=6379, db=0, decode_responses=True)
 jwt_redis_refresh = redis.Redis(host=os.getenv("REDIS_HOST"), port=6379, db=1, decode_responses=True)
 
@@ -24,9 +21,8 @@ def index():
 @jwt_required()
 def get_userinfo():
     jti = get_jwt()['jti']
-#    print(jti)
     if jwt_redis_blocklist.exists(jti): #만료된 토큰의 접근 차단
-        return jsonify(msg='Unauthorized'), 401
+        return jsonify(msg='Token has expired'), 401
     
     user_id = get_jwt_identity()
     user = User.query.filter_by(id=user_id).first()
@@ -59,7 +55,7 @@ def get_userinfo(user_id):
         return jsonify({'error':'user not found'}), 404
 '''
 
-#login page
+#login
 @main.route("/login", methods=['POST'])
 def login():
     data = request.get_json()
@@ -92,12 +88,20 @@ def login():
 @jwt_required()
 def logout():
     jti = get_jwt()['jti']
-#    print(jti)
     access_expires = current_app.config['JWT_ACCESS_TOKEN_EXPIRES']
     if not jwt_redis_blocklist.exists(jti):
         jwt_redis_blocklist.set(jti, "", ex=access_expires)
     return jsonify(msg='Token revoked'), 200
     #else
+
+#chat
+@main.route("/chat")
+@jwt_required()
+def chat():
+    jti = get_jwt()['jti']
+    if jwt_redis_blocklist.exists(jti): #만료된 토큰 접근 차단
+        return jsonify(msg='Unauthorized'), 401
+    return 200
 
 '''
 #refresh token 
@@ -107,20 +111,4 @@ def refresh():
     user_id = get_jwt_identity()
     access_token = create_access_token(identity=user_id)
     return jsonify({'access_token': access_token, 'user': user_id}), 200
-'''
-
-'''
-#chatbot page
-@main.route("/chat")
-@jwt_required()
-def chat():
-    jti = get_jwt()['jti']
-    if jwt_redis_blocklist.exists(jti): #만료된 토큰 접근 차단
-        return jsonify(msg='Unauthorized'), 401
-    return 200
-
-#predict test page
-@main.route("/predict")
-def test():
-    return str(answer)
 '''
