@@ -48,7 +48,12 @@ def predict(msg, major):
     #print(len(embed_list))
 
     best_sim_idx = int(np.argmax(cos_similarity))
-    answer = answer_list[best_sim_idx]
+    cos_sim_value = np.max(cos_similarity)
 
-#    print("bot: " + answer)
+    if cos_sim_value <= 0.45 :
+        answer = '준비중인 답변입니다. 다른 질문을 해주세요!'
+    else : 
+        answer = answer_list[best_sim_idx]
+
+    print("bot: " + answer)
     return answer
