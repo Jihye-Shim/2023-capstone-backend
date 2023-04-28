@@ -64,3 +64,19 @@ class Output(db.Model):
 
     def __repr__(self):
         return f"{self.__class__.__tablename__}(output_id={self.output_id}, input_id={self.input_id}, reply={self.reply}, time={self.time})"
+    
+#quick buttion table -> 하위버튼 x, 질문으로 연결
+class QuickButton(db.Model):
+    __tablename__ = 'test_quickbtn'
+    button_id = db.Column(db.INTEGER, primary_key=True) # 버튼(질문)별 고유 아이디
+    question = db.Column(db.String(400), nullable=False) #질문 내용 ex) 과사무실 버튼 클릭 -> "과사무실이 어디야?" 및 답변 출력
+
+    def __init__(self, button_id, question):
+        self.button_id = button_id
+        self.question = question
+
+    def __repr__(self):
+        return f"{self.__class__.__tablename__}(button_id={self.button_id}, question={self.question})"
+    
+#class SmartAssistant(db.Model):
+#    __tablename__ = 'test_assistant'
