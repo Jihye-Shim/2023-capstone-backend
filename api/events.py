@@ -25,7 +25,7 @@ class ChatNamepsace(Namespace):
     def on_sendtext(self, data):
         user_id = get_jwt_identity()
         user = User.query.filter_by(id=user_id).first()
-        emit('text', {"msg": user_id + ':' + str(data["input"])}, room=user.id)
+        emit('text', {"msg": str(data["input"])}, room=user.id)
     
     #bot reply emit(output data by chatbot model)
     @jwt_required()
@@ -33,7 +33,7 @@ class ChatNamepsace(Namespace):
         user_id = get_jwt_identity()
         user = User.query.filter_by(id=user_id).first()
         answer = predict(str(data["input"]), user.major)
-        emit('reply', {"msg": 'bot: ' + str(answer)}, room=user.id)
+        emit('reply', {"msg": str(answer)}, room=user.id)
 
  #   def on_loggedout(self, data):
  #       print("pop")
