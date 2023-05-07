@@ -17,7 +17,7 @@ class ChatNamepsace(Namespace):
     def on_loggedin(self, data):
         user_id = get_jwt_identity()
         user = User.query.filter_by(id=user_id).first()
-        join_room()
+        join_room(user.id)
         emit('status', {"msg": "serong"}, room=user.id)
     
     #user text emit(input data)

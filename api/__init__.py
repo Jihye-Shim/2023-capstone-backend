@@ -10,7 +10,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-socketio = SocketIO(logger=True, engineio_logger=True)
+socketio = SocketIO(logger=True, engineio_logger=True, cors_allowed_origins="*"
+)
 
 def create_app(debug=False):
     app = Flask(__name__)  
