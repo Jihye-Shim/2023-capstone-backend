@@ -1,6 +1,5 @@
 #DB setting: MariaDB, SQLAlchemy
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
 import json
 
 db = SQLAlchemy()
@@ -71,9 +70,9 @@ class Output(db.Model):
         return f"{self.__class__.__tablename__}(output_id={self.output_id}, input_id={self.input_id}, reply={self.reply}, time={self.time}, visible={self.visible})"
     
 #quick buttion table -> 하위버튼 o
-class QuickButton(db.Model):
+class Button(db.Model):
     __tablename__ = 'test_quickbtn'
-    btn_id = db.Column(db.INTEGER, primary_key=True) #버튼(질문)별 고유 아이디
+    btn_id = db.Column(db.String(10), primary_key=True) #버튼(질문)별 고유 아이디
     btn_title = db.Column(db.String(50), nullable=False)
     btn_message = db.Column(db.String(50), nullable=False) #버튼 클릭 시 출력될 사용자 메시지
     btn_contents = db.Column(db.String(200), nullable=False) #버튼 클릭 시 출력될 봇 메시지
@@ -89,18 +88,42 @@ class QuickButton(db.Model):
     
 class ButtonRelation(db.Model):
     __tablename__ = 'test_btnrelation'
-    btn_id = db.Column(db.INTEGER, primary_key=True) #버튼(질문)별 고유 아이디
-    parent_id = db.Column(db.INTEGER) # 상위
-    child_id = db.Column(db.JSON) # 하위 -> 여러 개의 버튼 존재 가능
+    num = db.Column(db.INTEGER, primary_key=True)
+    btn_id = db.Column(db.String(10), nullable=False) #버튼(질문)별 고유 아이디
+    sub_id = db.Column(db.String(10)) # 하위 -> 여러 개의 버튼 존재 가능
 
-    def __init__(self, btn, parent, child):
+    def __init__(self, num, btn, sub):
+        self.num= num
         self.btn_id = btn
-        self.parent_id = parent
-        self.child_id = child
+        self.sub_id = sub
     
     def __repr__(self):
-        return f"{self.__class__.__tablename__}(btn_id={self.btn_id}, parent_id={self.parent_id}, child_id={self.child_id})"
-
+        return f"{self.__class__.__tablename__}(num={self.num}, btn_id={self.btn_id}, sub_id={self.sub_id})"
 
 #class SmartAssistant(db.Model):
 #    __tablename__ = 'test_assistant'
+
+class SaveLog():
+
+    def input_log(uid, log):
+        import datetime
+        import uuid
+        time = datetime.datetime.now()
+        current_time = time.strftime("%Y%m%d-%H%M%S")
+        random_string = str(uuid.uuid4()).replace("-", "")[:7]
+        input_id =  f"{current_time}-{random_string}"
+        input_log = Input(input_id=input_id, user_id=uid, message=log, time=time)
+        db.session.add(input_log)
+        db.session.commit()
+        return input_id
+
+    def output_log(input_id, log):
+        import datetime
+        import uuid
+        time = datetime.datetime.now()
+        current_time = time.strftime("%Y%m%d-%H%M%S")
+        random_string = str(uuid.uuid4()).replace("-", "")[:7]
+        output_id =  f"{current_time}-{random_string}"
+        output_log = Output(output_id=output_id, input_id=input_id, reply=log, time=time)
+        db.session.add(output_log)
+        db.session.commit()
