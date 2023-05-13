@@ -1,16 +1,14 @@
 #socket event
 from flask_socketio import emit, join_room, leave_room, Namespace
 from flask_jwt_extended import jwt_required, get_jwt_identity
-import datetime
-import uuid
-from .db import db, User, Input, Output
+from .db import User, SaveLog
 from .model import predict
 
 class ChatNamepsace(Namespace):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.input_id = None
+        self.input_ids = {}
 
     def on_connect(self):
         pass
@@ -33,37 +31,17 @@ class ChatNamepsace(Namespace):
         user = User.query.filter_by(id=uid).first()
         log = str(data["input"])
         emit('text', {"msg": log}, room=user.id)
-        time = datetime.datetime.now()
-        current_time = time.strftime("%Y%m%d-%H%M%S")
-        random_string = str(uuid.uuid4()).replace("-", "")[:7]
-        self.input_id =  f"{current_time}-{random_string}"
-        input_log = Input(input_id=self.input_id, user_id=uid, message=log, time=time)
-        db.session.add(input_log)
-        db.session.commit() 
-    
+        input_id = SaveLog.input_log(uid, log)
+        self.input_ids[uid] = input_id
+
     #bot reply emit(output data by chatbot model)
     @jwt_required()
     def on_sendreply(self, data):
         uid = get_jwt_identity()
         user = User.query.filter_by(id=uid).first()
         answer = predict(str(data["input"]), user.major)
-        log = str(answer)
+        log = str(answer).replace(' / ', '\n')
         emit('reply', {"msg": log}, room=user.id)
-        input_id = self.input_id
-        time = datetime.datetime.now()
-        current_time = time.strftime("%Y%m%d-%H%M%S")
-        random_string = str(uuid.uuid4()).replace("-", "")[:7]
-        output_id =  f"{current_time}-{random_string}"
-        output_log = Output(output_id=output_id, input_id=input_id, reply=log, time=time)
-        db.session.add(output_log)
-        db.session.commit()
-        
-
-    '''
-    @jwt_required()
-    def on_quickbutton(self, data):
-        uid = get_jwt_identity()
-
-
-        emit('quick', {"msg": "button message"}, room=user)
-    '''
+        input_id = self.input_ids[uid]
+        SaveLog.output_log(input_id, log)
+        del self.input_ids[uid]
