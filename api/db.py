@@ -100,8 +100,22 @@ class ButtonRelation(db.Model):
     def __repr__(self):
         return f"{self.__class__.__tablename__}(num={self.num}, btn_id={self.btn_id}, sub_id={self.sub_id})"
 
-#class SmartAssistant(db.Model):
-#    __tablename__ = 'test_assistant'
+class Management(db.Model):
+    __tablename__ = 'test_Manage'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.String(10), db.ForeignKey("test_user.id"), nullable=False)
+    start = db.Column(db.Date, nullable=False)
+    end = db.Column(db.Date, nullable=False)
+    schedule = db.Column(db.String(200), nullable=False)
+
+    def __init__(self, uid, start, end, schedule):
+        self.user_id = uid
+        self.start = start
+        self.end = end
+        self.schedule = schedule
+
+    def __repr__(self):
+        return f"{self.__class__.__tablename__}(id={self.id}, user_id={self.user_id}, start={self.start}, end={self.end}, schedule={self.schedule})"
 
 class SaveLog():
 

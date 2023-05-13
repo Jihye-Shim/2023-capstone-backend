@@ -2,10 +2,10 @@
 from flask import current_app, request, render_template, Response, jsonify, Blueprint
 from sejong_univ_auth import ClassicSession, auth
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity, get_jwt
-import os
-import json
-import redis
-from .db import db, User
+from sqlalchemy import and_
+from .db import db, User, Input, Output, Management, Button, ButtonRelation, SaveLog
+from .weather import weather
+import os, json, redis, datetime, requests
 
 main = Blueprint('main', __name__)
 
@@ -102,6 +102,170 @@ def chat():
     if jwt_redis_blocklist.exists(jti): #만료된 토큰 접근 차단
         return jsonify(msg='Unauthorized'), 401
     return 200
+
+@main.route("/button/init", methods=['GET'])
+@jwt_required()
+def initbutton():
+    btn_list = Button.query.filter(Button.btn_id.like("1%0%_001")).with_entities(Button.btn_id, Button.btn_title).all()
+    d = dict(btn_list)
+    return jsonify(d), 200
+
+@main.route("/button/click/info", methods=['POST'])
+@jwt_required()
+def info_button():
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    select_btn = data.get("btn_title") # or btn_id
+    btn = Button.query.filter_by(btn_title=select_btn).first()
+    btn_id = btn.btn_id
+    sub = {}
+    sub_list = ButtonRelation.query.filter_by(btn_id = btn_id).with_entities(ButtonRelation.sub_id).all()
+    for list in sub_list:
+        id = list[0]
+        subbtn = Button.query.filter_by(btn_id = id).first()
+        sub[id] = subbtn.btn_title
+    input = btn.btn_message
+    output = btn.btn_contents
+    result = {"input": input, "output": output, "sub": sub}
+    input_id = SaveLog.input_log(user_id, input)
+    SaveLog.output_log(input_id, output)
+    return jsonify({"btn_title": select_btn, "result":result}), 200
+
+@main.route("/button/click/smart", methods=['POST'])
+@jwt_required()
+def smart_button():
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    select_btn = data.get("btn_title") # or btn_id
+    btn = Button.query.filter_by(btn_title=select_btn).first()
+    if select_btn == '오늘의 날씨':
+        input = btn.btn_message
+        output = weather(62, 126) #세종대 위치
+    elif select_btn == '일정 등록':
+        start = datetime.datetime.strptime(data.get("start"), "%Y-%m-%d")
+        end = datetime.datetime.strptime(data.get("end"), "%Y-%m-%d")
+        schedule = data.get('schedule')
+        input = start.strftime("%Y-%m-%d") + "~" + end.strftime("%Y-%m-%d") + ": " + schedule
+        output = btn.btn_contents
+        mng = Management(user_id, start, end, schedule)
+        db.session.add(mng)
+        db.session.commit()
+    elif select_btn == '일정 확인':
+        start = datetime.datetime.strptime(data.get("start"), "%Y-%m-%d")
+        start_date = start.date()
+        input = btn.btn_message
+        schedule = Management.query.filter(and_(Management.user_id == user_id, Management.start <= start_date, Management.end >= start_date)).all()
+        if schedule:
+            output = btn.btn_contents + "\n"
+            for s in schedule:
+                if s.start == s.end:
+                    output += str(s.start) + ": "+ str(s.schedule) + "\n"
+                else:
+                    output += str(s.start) + "~" + str(s.end) + ": "+ s.schedule + "\n"
+            output = output.rstrip("\n")
+        else:
+            output = start.strftime("%Y년 %m월 %d일") + "에 등록된 일정이 없습니다."
+    result = {"input": input, "output": output}
+    input_id = SaveLog.input_log(user_id, input)
+    SaveLog.output_log(input_id, output)
+    return jsonify({"btn_title": select_btn, "result":result}), 200
+
+#@main.route("/log")
+#@jwt_required()
+#def log():
+#    user_id = get_jwt_identity()
+    #데이터베이스의 정보 불러오기
+    #input 로그 찾기(시간순)
+    #output 로그 찾기(input foreign key 사용)
+    #세트 저장
+    #로그 전체 json에 추가
+
+'''
+
+@main.route("/blackboard/authorizationcode", methods=['GET'])
+def get_auth():
+    # 블랙보드 Learn API 호출을 위한 URL
+    server = os.getenv('BLACKBOARD_SERVER') 
+    auth_url = server + "/learn/api/public/v1/oauth2/authorizationcode"
+
+    params = {
+        'response_type': 'code',
+        'client_id': os.getenv('BLACKBOARD_ID'),
+        'redirect_uri': 'http://localhost:5000/callback'
+    }
+
+    response = requests.get(auth_url, params=params)
+    if response.status_code != 200:
+        return jsonify(response.text, response.status_code)
+    else:
+        return response.text
+    
+@main.route("/blackboard/token")
+# HTTP POST request to get access token
+def get_access_token():
+    import base64
+    # Authorization header with Base64 encoded key and secret
+    key = os.getenv('BLACKBOARD_KEY')
+    secret = os.getenv('BLACKBOARD_SECRET')
+    credentials = base64.b64encode(f'{key}:{secret}'.encode('ascii')).decode('ascii')
+    headers = {'Authorization': f'Basic {credentials}'}
+
+    # Request body
+    redirect_uri = 'http://localhost:5000/callback'
+    params = {
+        'grant_type': 'authorization_code',
+        'code': session['code'],
+        'redirect_uri': redirect_uri,
+        'client_id': key,
+        'client_secret': secret
+    }
+    server = os.getenv('BLACKBOARD_SERVER') 
+    token_url = server + "/learn/api/public/v1/oauth2/token"
+    # Send request to get access token
+    response = requests.post(token_url, headers=headers, params=params)
+
+    # Parse response to get access token
+    if response.status_code == 200:
+        response_data = response.json()
+        access_token = response_data['access_token']
+        return jsonify({"token": access_token})
+    else:
+        return {(f'Access token request failed with status code ({response.status_code}): {response.text}')}
+    
+
+@main.route('/callback')
+def callback():
+    code = request.args.get('code')
+    session['code'] = code
+    print(code)
+    print("done")
+    if code == None:
+        return 'code none'
+    return 'Authorization code received and stored securely in session.'
+
+
+@main.route("/blackboard/announcement")
+def get_announcement(access_token):
+    # 블랙보드 Learn API 호출을 위한 URL
+    server = os.getenv('BLACKBOARD_SERVER') 
+    announcement_url = server + "/learn/api/public/v1/announcements"
+    # API Key와 API Secret
+    api_key = os.getenv('BLACKBOARD_KEY')
+    api_secret = os.getenv('BLACKBOARD_SECRET')
+    headers = {
+        'Authorization': 'Bearer ' + access_token
+    }
+    params = {
+        'fields': 'id,title,body,availability'
+    }
+    response = requests.get(announcement_url, headers=headers, params=params)
+    if response.status_code != 200:
+        raise ValueError('Failed to get announcements')
+    else:
+        announcements = response.json()['results']
+        return announcements
+
+'''
 
 '''
 #refresh token 
