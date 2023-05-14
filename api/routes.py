@@ -37,24 +37,6 @@ def get_userinfo():
     else:
         return jsonify({'error':'user not found'}), 404
 
-'''
-#user info: user_id parameter
-@main.route("/user/<string:user_id>", methods=['GET'])
-def get_userinfo(user_id):
-    user = User.query.filter_by(id=user_id).first()
-    if user:
-        user_info = {'id': user.id,
-                'name': user.name,
-                'major': user.major,
-                'grade': user.grade,
-                'status': user.status,
-                'read_certification': json.loads(user.read_certification)}
-        print(user_info)
-        return jsonify(user_info), 200
-    else:
-        return jsonify({'error':'user not found'}), 404
-'''
-
 #login
 @main.route("/login", methods=['POST'])
 def login():
@@ -108,7 +90,10 @@ def chat():
 def initbutton():
     btn_list = Button.query.filter(Button.btn_id.like("1%0%_001")).with_entities(Button.btn_id, Button.btn_title).all()
     d = dict(btn_list)
-    return jsonify(d), 200
+    if d:
+        return jsonify(d), 200
+    else:
+        return jsonify({"msg": "button not found"}), 404
 
 @main.route("/button/click/info", methods=['POST'])
 @jwt_required()
@@ -117,16 +102,23 @@ def info_button():
     data = request.get_json()
     select_btn = data.get("btn_title") # or btn_id
     btn = Button.query.filter_by(btn_title=select_btn).first()
+    if not btn:
+        return jsonify({"msg": "btn not found"}), 404
     btn_id = btn.btn_id
     sub = {}
     sub_list = ButtonRelation.query.filter_by(btn_id = btn_id).with_entities(ButtonRelation.sub_id).all()
+    i = 1
     for list in sub_list:
         id = list[0]
         subbtn = Button.query.filter_by(btn_id = id).first()
-        sub[id] = subbtn.btn_title
+        sub[i] = subbtn.btn_title
+        i += 1
     input = btn.btn_message
     if btn_id[0] == "9" and btn_id[5:] != "000":
         dpt = Department.query.filter_by(department=btn.btn_title).first()
+        if dpt is None:
+            string = "학과 정보를 찾을 수 없습니다."
+            return jsonify({"msg":string}), 404
         string = dpt.department + " 정보입니다.\n"
         string += "사무실: " + dpt.location + "\n"
         string += "연락처: " + dpt.tel_number + "\n"
@@ -148,27 +140,45 @@ def info_button():
         output = string
     else:
         output = btn.btn_contents
-    print(output)
     result = {"input": input, "output": output, "sub": sub}
     input_id = SaveLog.input_log(user_id, input)
     SaveLog.output_log(input_id, output)
-    return jsonify({"btn_title": select_btn, "result":result}), 200
+    return jsonify(result), 200
 
-@main.route("/button/click/smart", methods=['POST'])
+@main.route("/button/click/weather", methods=['POST'])
+@jwt_required()
+def daily_weather():
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    title = data.get("btn_title")
+    btn = Button.query.filter_by(btn_title=title).first()
+    input = btn.btn_message
+    output = weather(62, 126) #세종대 위치
+    result = {"input": input, "output": output}
+    input_id = SaveLog.input_log(user_id, input)
+    SaveLog.output_log(input_id, output)
+    return jsonify(result), 200
+
+@main.route("/button/click/schedule", methods=['POST'])
 @jwt_required()
 def smart_button():
+#    jti = get_jwt()['jti']
+#    if jwt_redis_blocklist.exists(jti): #만료된 토큰 접근 차단
+#        return jsonify(msg='Token has expired'), 401
     user_id = get_jwt_identity()
     data = request.get_json()
     select_btn = data.get("btn_title") # or btn_id
     btn = Button.query.filter_by(btn_title=select_btn).first()
-    if select_btn == '오늘의 날씨':
-        input = btn.btn_message
-        output = weather(62, 126) #세종대 위치
-    elif select_btn == '일정 등록':
+    if not btn:
+        return jsonify({"msg": "btn not found"}), 404
+    if select_btn == '일정 등록':
         start = datetime.datetime.strptime(data.get("start"), "%Y-%m-%d")
         end = datetime.datetime.strptime(data.get("end"), "%Y-%m-%d")
         schedule = data.get('schedule')
-        input = start.strftime("%Y-%m-%d") + "~" + end.strftime("%Y-%m-%d") + ": " + schedule
+        if start == end:
+            input = start.strftime("%Y-%m-%d") + ": " + schedule
+        else:
+            input = start.strftime("%Y-%m-%d") + "~" + end.strftime("%Y-%m-%d") + ": " + schedule
         output = btn.btn_contents
         mng = Management(user_id, start, end, schedule)
         db.session.add(mng)
@@ -191,7 +201,7 @@ def smart_button():
     result = {"input": input, "output": output}
     input_id = SaveLog.input_log(user_id, input)
     SaveLog.output_log(input_id, output)
-    return jsonify({"btn_title": select_btn, "result":result}), 200
+    return jsonify(result), 200
 
 #@main.route("/log")
 #@jwt_required()
@@ -204,7 +214,6 @@ def smart_button():
     #로그 전체 json에 추가
 
 '''
-
 @main.route("/blackboard/authorizationcode", methods=['GET'])
 def get_auth():
     # 블랙보드 Learn API 호출을 위한 URL
