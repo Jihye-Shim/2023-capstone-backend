@@ -122,7 +122,7 @@ class Department(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     department = db.Column(db.String(20), nullable=False)
     location = db.Column(db.String(30), nullable=False)
-    tel_number = db.Column(db.String(15), nullable=False)
+    tel_number = db.Column(db.String(35), nullable=False)
     homepage = db.Column(db.String(50), nullable=False)
     abeek = db.Column(db.String(50), nullable=True)
 
