@@ -102,7 +102,7 @@ class ButtonRelation(db.Model):
 
 class Management(db.Model):
     __tablename__ = 'test_Manage'
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.String(10), db.ForeignKey("test_user.id"), nullable=False)
     start = db.Column(db.Date, nullable=False)
     end = db.Column(db.Date, nullable=False)
@@ -116,6 +116,44 @@ class Management(db.Model):
 
     def __repr__(self):
         return f"{self.__class__.__tablename__}(id={self.id}, user_id={self.user_id}, start={self.start}, end={self.end}, schedule={self.schedule})"
+
+class Department(db.Model):
+    __tablename__ = 'Department'
+    id = db.Column(db.Integer, primary_key=True)
+    department = db.Column(db.String(20), nullable=False)
+    location = db.Column(db.String(30), nullable=False)
+    tel_number = db.Column(db.String(15), nullable=False)
+    homepage = db.Column(db.String(50), nullable=False)
+    abeek = db.Column(db.String(50), nullable=True)
+
+    def __init__(self, id, department, location, tel, page, abeek):
+        self.id = id
+        self.department = department
+        self.location = location
+        self.tel_number = tel
+        self.homepage = page
+        self.abeek = abeek
+
+    def __repr__(self):
+        return f"{self.__class__.__tablename__}(id={self.id}, department={self.department}, location={self.location}, tel_number={self.tel_number}, homepage={self.homepage}, abeek={self.abeek})"
+
+class Facilities(db.Model):
+    __tablename__ = 'Facilities'
+    id = db.Column(db.Integer, primary_key=True)
+    facilities = db.Column(db.String(10), nullable=False)
+    name = db.Column(db.String(20), nullable=False)
+    location = db.Column(db.String(10), nullable=False)
+    time = db.Column(db.String(50))
+
+    def __init__(self, id, f, name, location, time):
+        self.id = id
+        self.facilities = f
+        self.name = name
+        self.location = location
+        self.time = time
+
+    def __repr__(self):
+        return f"{self.__class__.__tablename__}(id={self.id}, facilities={self.facilities}, name={self.name}, location={self.location}, time={self.time})"
 
 class SaveLog():
 

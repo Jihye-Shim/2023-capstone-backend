@@ -3,7 +3,7 @@ from flask import current_app, request, render_template, Response, jsonify, Blue
 from sejong_univ_auth import ClassicSession, auth
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity, get_jwt
 from sqlalchemy import and_
-from .db import db, User, Input, Output, Management, Button, ButtonRelation, SaveLog
+from .db import db, User, Input, Output, Management, Button, ButtonRelation, SaveLog, Department, Facilities
 from .weather import weather
 import os, json, redis, datetime, requests
 
@@ -125,7 +125,30 @@ def info_button():
         subbtn = Button.query.filter_by(btn_id = id).first()
         sub[id] = subbtn.btn_title
     input = btn.btn_message
-    output = btn.btn_contents
+    if btn_id[0] == "9" and btn_id[5:] != "000":
+        dpt = Department.query.filter_by(department=btn.btn_title).first()
+        string = dpt.department + " 정보입니다.\n"
+        string += "사무실: " + dpt.location + "\n"
+        string += "연락처: " + dpt.tel_number + "\n"
+        string += "학과 홈페이지: " + dpt.homepage + "\n"
+        if dpt.abeek:
+            string += "공학인증: " + dpt.abeek + "\n"
+        string = string.rstrip("\n")
+        output = string
+    elif btn_id[3] == "5" and btn_id[5:] > "001":
+        fclty = Facilities.query.filter_by(facilities=btn.btn_title).all()
+        string = ""
+        for f in fclty:
+            string += "[" + f.name + "]" + "\n"
+            string += "위치: " + f.location + "\n"
+            if f.time:
+                string = string.rstrip("\n")
+                string += ", 운영시간: " + f.time + "\n"
+        string = string.rstrip("\n")
+        output = string
+    else:
+        output = btn.btn_contents
+    print(output)
     result = {"input": input, "output": output, "sub": sub}
     input_id = SaveLog.input_log(user_id, input)
     SaveLog.output_log(input_id, output)
