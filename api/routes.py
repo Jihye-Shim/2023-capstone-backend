@@ -1,5 +1,5 @@
 #server
-from flask import current_app, request, render_template, Response, jsonify, Blueprint
+from flask import current_app, request, render_template, Response, jsonify, Blueprint, send_file
 from sejong_univ_auth import ClassicSession, auth
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity, get_jwt
 from sqlalchemy import and_
@@ -37,6 +37,34 @@ def get_userinfo():
     else:
         return jsonify({'error':'user not found'}), 404
 
+#test login
+@main.route("/test/login", methods=['POST'])
+def test():
+    data = request.get_json()
+    uid = data.get('id')  
+    upw = data.get('pw')
+    #auth(id: str, password: str, methods: Authenticator)
+    from sejong_univ_auth import PortalSSOToken, DosejongSession
+    result = {}
+    result['ClassicSession'] = auth(id=uid, password=upw, methods=ClassicSession)
+    result['DosejongSession'] = auth(id=uid, password=upw, methods=DosejongSession)
+    result['PortalSSOToken'] = auth(id=uid, password=upw, methods=PortalSSOToken)
+    return jsonify(result)
+
+'''
+AuthResponse(
+	success=True,
+	is_auth=True,
+	status_code=200,
+	code='success',
+	body={
+		'name': '신희재',
+		'major': '컴퓨터공학과'
+	},
+	authenticator='DosejongSession'
+)
+'''
+
 #login
 @main.route("/login", methods=['POST'])
 def login():
@@ -45,6 +73,8 @@ def login():
     upw = data.get('pw')
     #auth(id: str, password: str, methods: Authenticator)
     result = auth(id=uid, password=upw, methods=ClassicSession)
+    print(result)
+    print(result.body)
     if result.is_auth:  #oauth login success
         user_info = {'id': uid,
                     'name': result.body['name'],
@@ -138,12 +168,16 @@ def info_button():
                 string += ", 운영시간: " + f.time + "\n"
         string = string.rstrip("\n")
         output = string
+    elif btn.btn_title == "교내 지도":
+        image_path = 'static/map.jpg'
+        return send_file(image_path, mimetype='image/jpeg'), 200
     else:
         output = btn.btn_contents
     result = {"input": input, "output": output, "sub": sub}
     input_id = SaveLog.input_log(user_id, input)
     SaveLog.output_log(input_id, output)
     return jsonify(result), 200
+
 
 @main.route("/button/click/weather", methods=['POST'])
 @jwt_required()
@@ -162,9 +196,6 @@ def daily_weather():
 @main.route("/button/click/schedule", methods=['POST'])
 @jwt_required()
 def smart_button():
-#    jti = get_jwt()['jti']
-#    if jwt_redis_blocklist.exists(jti): #만료된 토큰 접근 차단
-#        return jsonify(msg='Token has expired'), 401
     user_id = get_jwt_identity()
     data = request.get_json()
     select_btn = data.get("btn_title") # or btn_id
