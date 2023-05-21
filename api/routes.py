@@ -3,7 +3,7 @@ from flask import current_app, request, render_template, Response, jsonify, Blue
 from sejong_univ_auth import ClassicSession, auth
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity, get_jwt
 from sqlalchemy import and_
-from .db import db, User, Input, Output, Management, Button, ButtonRelation, SaveLog, Department, Facilities, UnivSchedule
+from .db import db, User, Management, Button, ButtonRelation, Department, Facilities, UnivSchedule, Log
 from .weather import weather
 import os, json, redis, datetime, requests
 
@@ -173,9 +173,13 @@ def info_button():
         return send_file(image_path, mimetype='image/jpeg'), 200
     else:
         output = btn.btn_contents
-    result = {"input": input, "output": output, "sub": sub}
-    input_id = SaveLog.input_log(user_id, input)
-    SaveLog.output_log(input_id, output)
+    if len(sub_list) == 0:
+        sub = None
+        result = {"input": input, "output": output}
+    else:
+        result = {"input": input, "output": output, "sub": sub}
+    time = datetime.datetime.now()
+    Log.save_log(user_id, input, output, time, time, sub, None)
     return jsonify(result), 200
 
 @main.route("/button/click/weather", methods=['POST'])
@@ -189,10 +193,9 @@ def daily_weather():
     #output = weather(62, 126) #세종대 위치
     output = weather(62, 119) #세종대 위치
     result = {"input": input, "output": output}
-    input_id = SaveLog.input_log(user_id, input)
-    SaveLog.output_log(input_id, output)
+    time = datetime.datetime.now()
+    Log.save_log(user_id, input, output, time, time, None, None)
     return jsonify(result), 200
-
 
 @main.route("/button/click/univschedule", methods=['POST'])
 @jwt_required()
@@ -212,8 +215,8 @@ def univ_schedule():
     output = btn.btn_contents
     print(list)
     result = {"input": input, "output": output, "schedule": list}
-    input_id = SaveLog.input_log(user_id, input)
-    SaveLog.output_log(input_id, output)
+    time = datetime.datetime.now()
+    Log.save_log(user_id, input, output, time, time, None, list)
     return jsonify(result), 200
 
 
@@ -254,19 +257,24 @@ def smart_button():
         else:
             output = start.strftime("%Y년 %m월 %d일") + "에 등록된 일정이 없습니다."
     result = {"input": input, "output": output}
-    input_id = SaveLog.input_log(user_id, input)
-    SaveLog.output_log(input_id, output)
+    time = datetime.datetime.now()
+    Log.save_log(user_id, input, output, time, time, None, None)
     return jsonify(result), 200
 
-#@main.route("/log")
+'''
+@main.route("/log")
+@jwt_required()
+def log():
+    user_id = get_jwt_identity()
+    result = Log.get_log(user_id)
+    if result is None:
+        return 200
+    return jsonify(result), 200
+'''
+#@main.route("/logdelete")
 #@jwt_required()
-#def log():
-#    user_id = get_jwt_identity()
-    #데이터베이스의 정보 불러오기
-    #input 로그 찾기(시간순)
-    #output 로그 찾기(input foreign key 사용)
-    #세트 저장
-    #로그 전체 json에 추가
+#def log_delete():
+#    return 200
 
 '''
 @main.route("/blackboard/authorizationcode", methods=['GET'])

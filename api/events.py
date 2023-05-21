@@ -1,14 +1,16 @@
 #socket event
 from flask_socketio import emit, join_room, leave_room, Namespace
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from .db import User, SaveLog
+from .db import User, Log
 from .model import predict
+import datetime
 
 class ChatNamepsace(Namespace):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.input_ids = {}
+        self.input = {}
+        self.input_time = {}
 
     def on_connect(self):
         pass
@@ -31,8 +33,9 @@ class ChatNamepsace(Namespace):
         user = User.query.filter_by(id=uid).first()
         log = str(data["input"])
         emit('text', {"msg": log}, room=user.id)
-        input_id = SaveLog.input_log(uid, log)
-        self.input_ids[uid] = input_id
+        time = datetime.datetime.now()
+        self.input_time[uid] = time
+        self.input[uid] = log
 
     #bot reply emit(output data by chatbot model)
     @jwt_required()
@@ -42,6 +45,7 @@ class ChatNamepsace(Namespace):
         answer = predict(str(data["input"]), user.major)
         log = str(answer).replace(' / ', '\n')
         emit('reply', {"msg": log}, room=user.id)
-        input_id = self.input_ids[uid]
-        SaveLog.output_log(input_id, log)
-        del self.input_ids[uid]
+        time = datetime.datetime.now()
+        Log.save_log(uid, self.input[uid], log, self.input_time[uid], time, None, None)
+        del self.input[uid]
+        del self.input_time[uid]
