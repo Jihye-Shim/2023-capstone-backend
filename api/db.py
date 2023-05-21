@@ -85,44 +85,6 @@ class Log(db.Model):
             return None
         return result
 
-#user message table
-class Input(db.Model):
-    __tablename__ = 'test_input'
-    input_id = db.Column(db.String(30), primary_key=True)
-    user_id = db.Column(db.String(10), db.ForeignKey("test_user.id"), nullable=False)
-    message = db.Column(db.String(400), nullable=False)
-    time = db.Column(db.TIMESTAMP, nullable=False)
-    visible = db.Column(db.Boolean, nullable=False)
-
-    def __init__(self, input_id, user_id, message, time):
-        self.input_id = input_id
-        self.user_id = user_id
-        self.message = message
-        self.time = time
-        self.visible = True
-
-    def __repr__(self):
-        return f"{self.__class__.__tablename__}(input_id={self.input_id}, user_id={self.user_id}, message={self.message}, time={self.time}, visible={self.visible})"
-    
-#chatbot reply table
-class Output(db.Model):
-    __tablename__ = 'test_output'
-    output_id = db.Column(db.String(30), primary_key=True)
-    input_id = db.Column(db.String(30), db.ForeignKey("test_input.input_id"), nullable=False)
-    reply = db.Column(db.String(400), nullable=False)
-    time = db.Column(db.TIMESTAMP, nullable=False)
-    visible = db.Column(db.Boolean, nullable=False)
-
-    def __init__(self, output_id, input_id, reply, time):
-        self.output_id = output_id
-        self.input_id = input_id
-        self.reply = reply
-        self.time = time
-        self.visible = True
-
-    def __repr__(self):
-        return f"{self.__class__.__tablename__}(output_id={self.output_id}, input_id={self.input_id}, reply={self.reply}, time={self.time}, visible={self.visible})"
-    
 #quick buttion table -> 하위버튼 o
 class Button(db.Model):
     __tablename__ = 'test_quickbtn'
@@ -223,29 +185,4 @@ class Facilities(db.Model):
 
     def __repr__(self):
         return f"{self.__class__.__tablename__}(id={self.id}, facilities={self.facilities}, name={self.name}, location={self.location}, time={self.time})"
-
-class SaveLog():
-
-    def input_log(uid, log):
-        import datetime
-        import uuid
-        time = datetime.datetime.now()
-        current_time = time.strftime("%Y%m%d-%H%M%S")
-        random_string = str(uuid.uuid4()).replace("-", "")[:7]
-        input_id =  f"{current_time}-{random_string}"
-        input_log = Input(input_id=input_id, user_id=uid, message=log, time=time)
-        db.session.add(input_log)
-        db.session.commit()
-        return input_id
-
-    def output_log(input_id, log):
-        import datetime
-        import uuid
-        time = datetime.datetime.now()
-        current_time = time.strftime("%Y%m%d-%H%M%S")
-        random_string = str(uuid.uuid4()).replace("-", "")[:7]
-        output_id =  f"{current_time}-{random_string}"
-        output_log = Output(output_id=output_id, input_id=input_id, reply=log, time=time)
-        db.session.add(output_log)
-        db.session.commit()
 
