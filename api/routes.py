@@ -3,7 +3,7 @@ from flask import current_app, request, render_template, Response, jsonify, Blue
 from sejong_univ_auth import ClassicSession, auth
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity, get_jwt
 from sqlalchemy import and_
-from .db import db, User, Input, Output, Management, Button, ButtonRelation, SaveLog, Department, Facilities
+from .db import db, User, Input, Output, Management, Button, ButtonRelation, SaveLog, Department, Facilities, UnivSchedule
 from .weather import weather
 import os, json, redis, datetime, requests
 
@@ -47,7 +47,7 @@ def test():
     from sejong_univ_auth import PortalSSOToken, DosejongSession
     result = {}
     result['ClassicSession'] = auth(id=uid, password=upw, methods=ClassicSession)
-    result['DosejongSession'] = auth(id=uid, password=upw, methods=DosejongSession)
+    #result['DosejongSession'] = auth(id=uid, password=upw, methods=DosejongSession)
     result['PortalSSOToken'] = auth(id=uid, password=upw, methods=PortalSSOToken)
     return jsonify(result)
 
@@ -178,7 +178,6 @@ def info_button():
     SaveLog.output_log(input_id, output)
     return jsonify(result), 200
 
-
 @main.route("/button/click/weather", methods=['POST'])
 @jwt_required()
 def daily_weather():
@@ -187,11 +186,36 @@ def daily_weather():
     title = data.get("btn_title")
     btn = Button.query.filter_by(btn_title=title).first()
     input = btn.btn_message
-    output = weather(62, 126) #세종대 위치
+    #output = weather(62, 126) #세종대 위치
+    output = weather(62, 119) #세종대 위치
     result = {"input": input, "output": output}
     input_id = SaveLog.input_log(user_id, input)
     SaveLog.output_log(input_id, output)
     return jsonify(result), 200
+
+
+@main.route("/button/click/univschedule", methods=['POST'])
+@jwt_required()
+def univ_schedule():
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    title = data.get("btn_title")
+    btn = Button.query.filter_by(btn_title=title).first()
+    input = btn.btn_message
+    univ = UnivSchedule.query.order_by(UnivSchedule.start.asc()).all()
+    list = {}
+    for s in univ:
+        schedule = {"start": s.start.strftime("%Y-%m-%d"),
+                    "end": s.end.strftime("%Y-%m-%d"),
+                    "schedule": s.schedule}
+        list[s.id]=schedule
+    output = btn.btn_contents
+    print(list)
+    result = {"input": input, "output": output, "schedule": list}
+    input_id = SaveLog.input_log(user_id, input)
+    SaveLog.output_log(input_id, output)
+    return jsonify(result), 200
+
 
 @main.route("/button/click/schedule", methods=['POST'])
 @jwt_required()

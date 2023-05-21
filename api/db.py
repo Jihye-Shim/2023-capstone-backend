@@ -101,7 +101,7 @@ class ButtonRelation(db.Model):
         return f"{self.__class__.__tablename__}(num={self.num}, btn_id={self.btn_id}, sub_id={self.sub_id})"
 
 class Management(db.Model):
-    __tablename__ = 'test_Manage'
+    __tablename__ = 'test_manage'
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.String(10), db.ForeignKey("test_user.id"), nullable=False)
     start = db.Column(db.Date, nullable=False)
@@ -117,8 +117,23 @@ class Management(db.Model):
     def __repr__(self):
         return f"{self.__class__.__tablename__}(id={self.id}, user_id={self.user_id}, start={self.start}, end={self.end}, schedule={self.schedule})"
 
+class UnivSchedule(db.Model):
+    __tablename__='test_univschedule'
+    id = db.Column(db.Integer, primary_key=True)
+    start = db.Column(db.Date, nullable=False)
+    end = db.Column(db.Date, nullable=False)
+    schedule = db.Column(db.String(100), nullable=False)
+
+    def __init__(self, start, end, schedule):
+        self.start = start
+        self.end = end
+        self.schedule = schedule
+
+    def __repr__(self):
+        return f"{self.__class__.__tablename__}(id={self.id}, start={self.start}, end={self.end}, schedule={self.schedule})"
+
 class Department(db.Model):
-    __tablename__ = 'Department'
+    __tablename__ = 'department'
     id = db.Column(db.Integer, primary_key=True)
     department = db.Column(db.String(20), nullable=False)
     location = db.Column(db.String(30), nullable=False)
@@ -138,7 +153,7 @@ class Department(db.Model):
         return f"{self.__class__.__tablename__}(id={self.id}, department={self.department}, location={self.location}, tel_number={self.tel_number}, homepage={self.homepage}, abeek={self.abeek})"
 
 class Facilities(db.Model):
-    __tablename__ = 'Facilities'
+    __tablename__ = 'facilities'
     id = db.Column(db.Integer, primary_key=True)
     facilities = db.Column(db.String(10), nullable=False)
     name = db.Column(db.String(20), nullable=False)
