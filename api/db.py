@@ -31,6 +31,60 @@ class User(db.Model):
     def __repr__(self):
         return f"{self.__class__.__tablename__}(id={self.id}, name={self.name}, major={self.major}, grade={self.grade}), status={self.status}, read_certification={json.loads(self.read_certification)}"
 
+
+class Log(db.Model):
+    __tablename__ = 'test_log'
+    log_id = db.Column(db.String(30), primary_key=True)
+    user_id = db.Column(db.String(10), db.ForeignKey("test_user.id"), nullable=False)
+    input = db.Column(db.String(100), nullable=False)
+    output = db.Column(db.String(400), nullable=False)
+    input_time = db.Column(db.TIMESTAMP, nullable=False)
+    output_time = db.Column(db.TIMESTAMP, nullable=False)
+    sub = db.Column(db.JSON)
+    schedule = db.Column(db.JSON)
+    visible = db.Column(db.Boolean, nullable=False)
+
+    def __init__(self, log_id, user_id, input, output, input_time, output_time, sub, schedule):
+        self.log_id = log_id
+        self.user_id = user_id
+        self.input = input
+        self.output = output
+        self.input_time = input_time
+        self.output_time = output_time
+        self.sub = json.dumps(sub)
+        self.schedule = json.dumps(schedule)
+        self.visible = True
+
+    def __repr__(self):
+        return f"{self.__class__.__tablename__}(id={self.log_id},user_id ={self.user_id},input={self.input},output={self.output},input_time={self.input_time},output_time={self.output_time},sub={self.sub},schedule={self.schedule})"
+
+    def save_log(uid, input, output, itime, otime, sub, schedule):
+        import uuid
+        current_time = otime.strftime("%Y%m%d-%H%M%S")
+        random_string = str(uuid.uuid4()).replace("-", "")[:7]
+        lid =  f"{current_time}-{random_string}"
+        log = Log(log_id=lid, user_id=uid, input=input, output=output, input_time=itime, output_time=otime, sub=sub, schedule=schedule)
+        db.session.add(log)
+        db.session.commit()
+    
+    def get_log(uid):
+        result = {}
+        log_list = Log.query.filter_by(user_id=uid, visible=True).order_by(Log.input_time.asc()).all()
+        i = 1
+        for list in log_list:
+            log = None
+            log = {"input": list.input,
+                   "output": list.output}
+            if list.sub is not None:
+                log["sub"] = json.loads(list.sub)
+            if list.schedule is not None:
+                log["schedule"] = json.loads(list.schedule)
+            result[i] = log
+            i+=1
+        if len(log_list) == 0:
+            return None
+        return result
+
 #user message table
 class Input(db.Model):
     __tablename__ = 'test_input'
@@ -194,3 +248,4 @@ class SaveLog():
         output_log = Output(output_id=output_id, input_id=input_id, reply=log, time=time)
         db.session.add(output_log)
         db.session.commit()
+
