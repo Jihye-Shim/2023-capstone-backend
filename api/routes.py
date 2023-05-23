@@ -12,9 +12,6 @@ main = Blueprint('main', __name__)
 jwt_redis_blocklist = redis.StrictRedis(host=os.getenv("REDIS_HOST"), port=6379, db=0, decode_responses=True)
 jwt_redis_refresh = redis.Redis(host=os.getenv("REDIS_HOST"), port=6379, db=1, decode_responses=True)
 
-@main.route("/")
-def index():
-    return render_template("index.html")
 
 #user info: token
 @main.route("/user", methods=['GET'])
@@ -50,20 +47,6 @@ def test():
     #result['DosejongSession'] = auth(id=uid, password=upw, methods=DosejongSession)
     result['PortalSSOToken'] = auth(id=uid, password=upw, methods=PortalSSOToken)
     return jsonify(result)
-
-'''
-AuthResponse(
-	success=True,
-	is_auth=True,
-	status_code=200,
-	code='success',
-	body={
-		'name': '신희재',
-		'major': '컴퓨터공학과'
-	},
-	authenticator='DosejongSession'
-)
-'''
 
 #login
 @main.route("/login", methods=['POST'])
@@ -261,7 +244,7 @@ def smart_button():
     Log.save_log(user_id, input, output, time, time, None, None)
     return jsonify(result), 200
 
-'''
+
 @main.route("/log")
 @jwt_required()
 def log():
@@ -270,7 +253,7 @@ def log():
     if result is None:
         return 200
     return jsonify(result), 200
-'''
+
 #@main.route("/logdelete")
 #@jwt_required()
 #def log_delete():
