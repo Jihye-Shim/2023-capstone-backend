@@ -40,30 +40,32 @@ class Log(db.Model):
     output = db.Column(db.String(400), nullable=False)
     input_time = db.Column(db.TIMESTAMP, nullable=False)
     output_time = db.Column(db.TIMESTAMP, nullable=False)
-    sub = db.Column(db.JSON)
-    schedule = db.Column(db.JSON)
+    btn_title = db.Column(db.String(15), nullable=True)
+    sub = db.Column(db.JSON, nullable=True)
+    schedule = db.Column(db.JSON, nullable=True)
     visible = db.Column(db.Boolean, nullable=False)
 
-    def __init__(self, log_id, user_id, input, output, input_time, output_time, sub, schedule):
+    def __init__(self, log_id, user_id, input, output, input_time, output_time, btn_title, sub, schedule):
         self.log_id = log_id
         self.user_id = user_id
         self.input = input
         self.output = output
         self.input_time = input_time
         self.output_time = output_time
+        self.btn_title = btn_title
         self.sub = json.dumps(sub)
         self.schedule = json.dumps(schedule)
         self.visible = True
 
     def __repr__(self):
-        return f"{self.__class__.__tablename__}(id={self.log_id},user_id ={self.user_id},input={self.input},output={self.output},input_time={self.input_time},output_time={self.output_time},sub={self.sub},schedule={self.schedule})"
+        return f"{self.__class__.__tablename__}(id={self.log_id},user_id ={self.user_id},input={self.input},output={self.output},input_time={self.input_time},output_time={self.output_time},btn_title={self.btn_title},sub={self.sub},schedule={self.schedule})"
 
-    def save_log(uid, input, output, itime, otime, sub, schedule):
+    def save_log(uid, input, output, itime, otime, btn_title, sub, schedule):
         import uuid
         current_time = otime.strftime("%Y%m%d-%H%M%S")
         random_string = str(uuid.uuid4()).replace("-", "")[:7]
         lid =  f"{current_time}-{random_string}"
-        log = Log(log_id=lid, user_id=uid, input=input, output=output, input_time=itime, output_time=otime, sub=sub, schedule=schedule)
+        log = Log(log_id=lid, user_id=uid, input=input, output=output, input_time=itime, output_time=otime, btn_title=btn_title, sub=sub, schedule=schedule)
         db.session.add(log)
         db.session.commit()
     
@@ -84,6 +86,12 @@ class Log(db.Model):
         if len(log_list) == 0:
             return None
         return result
+    '''
+    def invisible_log(uid):
+        log_list = Log.query.filter_by(user_id=uid, visible=True).order_by(Log.input_time.asc()).all()
+        for list in log_list:
+            list.visible=False
+    '''      
 
 #quick buttion table -> 하위버튼 o
 class Button(db.Model):

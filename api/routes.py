@@ -1,18 +1,34 @@
 #server
-from flask import current_app, request, render_template, Response, jsonify, Blueprint, send_file
+from flask import current_app, request, Response, jsonify, Blueprint, send_file
 from sejong_univ_auth import ClassicSession, auth
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity, get_jwt
 from sqlalchemy import and_
 from .db import db, User, Management, Button, ButtonRelation, Department, Facilities, UnivSchedule, Log
 from .weather import weather
 import os, json, redis, datetime, requests
+#from api import cache
+#from api import chatmodel
 
 main = Blueprint('main', __name__)
 
 jwt_redis_blocklist = redis.StrictRedis(host=os.getenv("REDIS_HOST"), port=6379, db=0, decode_responses=True)
 jwt_redis_refresh = redis.Redis(host=os.getenv("REDIS_HOST"), port=6379, db=1, decode_responses=True)
 
-
+'''
+#test
+@main.route('/model', methods=['POST'])
+#@cache.cached()
+def test_model():
+    data = request.get_json()
+    input = data.get('input')
+    major = data.get('major')
+    print("시작")
+    print(datetime.datetime.now())
+    result = chatmodel.get_prediction(22, input, major)
+    print("답변시간")
+    print(datetime.datetime.now())
+    return result, 200
+'''
 #user info: token
 @main.route("/user", methods=['GET'])
 @jwt_required()
@@ -33,7 +49,7 @@ def get_userinfo():
         return jsonify(user_info), 200
     else:
         return jsonify({'error':'user not found'}), 404
-
+'''
 #test login
 @main.route("/test/login", methods=['POST'])
 def test():
@@ -47,6 +63,7 @@ def test():
     #result['DosejongSession'] = auth(id=uid, password=upw, methods=DosejongSession)
     result['PortalSSOToken'] = auth(id=uid, password=upw, methods=PortalSSOToken)
     return jsonify(result)
+'''
 
 #login
 @main.route("/login", methods=['POST'])
@@ -162,7 +179,7 @@ def info_button():
     else:
         result = {"input": input, "output": output, "sub": sub}
     time = datetime.datetime.now()
-    Log.save_log(user_id, input, output, time, time, sub, None)
+    Log.save_log(user_id, input, output, time, time, btn.btn_title, sub, None)
     return jsonify(result), 200
 
 @main.route("/button/click/weather", methods=['POST'])
@@ -177,7 +194,7 @@ def daily_weather():
     output = weather(62, 119) #세종대 위치
     result = {"input": input, "output": output}
     time = datetime.datetime.now()
-    Log.save_log(user_id, input, output, time, time, None, None)
+    Log.save_log(user_id, input, output, time, time, btn.btn_title, None, None)
     return jsonify(result), 200
 
 @main.route("/button/click/univschedule", methods=['POST'])
@@ -199,7 +216,7 @@ def univ_schedule():
     print(list)
     result = {"input": input, "output": output, "schedule": list}
     time = datetime.datetime.now()
-    Log.save_log(user_id, input, output, time, time, None, list)
+    Log.save_log(user_id, input, output, time, time, btn.btn_title, None, list)
     return jsonify(result), 200
 
 
@@ -241,20 +258,21 @@ def smart_button():
             output = start.strftime("%Y년 %m월 %d일") + "에 등록된 일정이 없습니다."
     result = {"input": input, "output": output}
     time = datetime.datetime.now()
-    Log.save_log(user_id, input, output, time, time, None, None)
+    Log.save_log(user_id, input, output, time, time, btn.btn_title, None, None)
     return jsonify(result), 200
 
-
-@main.route("/log")
+#지난 log 
+@main.route("/log", methods=['GET'])
 @jwt_required()
 def log():
     user_id = get_jwt_identity()
     result = Log.get_log(user_id)
     if result is None:
-        return 200
+        return jsonify({"msg": "There isn't visible log data"}), 204
     return jsonify(result), 200
 
-#@main.route("/logdelete")
+# log 삭제(non-visible)
+#@main.route("/logdelete", methods=['DELETE'])
 #@jwt_required()
 #def log_delete():
 #    return 200
