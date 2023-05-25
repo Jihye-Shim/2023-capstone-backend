@@ -37,7 +37,7 @@ class Log(db.Model):
     log_id = db.Column(db.String(30), primary_key=True)
     user_id = db.Column(db.String(10), db.ForeignKey("test_user.id"), nullable=False)
     input = db.Column(db.String(100), nullable=False)
-    output = db.Column(db.String(400), nullable=False)
+    output = db.Column(db.String(1000), nullable=False)
     input_time = db.Column(db.TIMESTAMP, nullable=False)
     output_time = db.Column(db.TIMESTAMP, nullable=False)
     btn_title = db.Column(db.String(15), nullable=True)
