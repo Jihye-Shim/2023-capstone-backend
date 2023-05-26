@@ -7,11 +7,6 @@ from api import chatmodel
 
 class ChatNamepsace(Namespace):
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.input = {}
-        self.input_time = {}
-
     def on_connect(self):
         pass
 
@@ -24,18 +19,8 @@ class ChatNamepsace(Namespace):
         user_id = get_jwt_identity()
         user = User.query.filter_by(id=user_id).first()
         join_room(user.id)
-        emit('status', {"msg": "세롱이입니다! 무엇을 도와드릴까요?"}, room=user.id)
-    
-    #user text emit(input data)
-    @jwt_required()
-    def on_sendtext(self, data):
-        uid = get_jwt_identity()
-        user = User.query.filter_by(id=uid).first()
-        log = str(data["input"])
-        emit('text', {"msg": log}, room=user.id)
-        time = datetime.datetime.now()
-        self.input_time[uid] = time
-        self.input[uid] = log
+        print("start")
+        # emit('status', {"msg": "세롱이입니다! 무엇을 도와드릴까요?"}, room=user.id)
 
     #bot reply emit(output data by chatbot model)
     @jwt_required()
@@ -43,10 +28,11 @@ class ChatNamepsace(Namespace):
         uid = get_jwt_identity()
         user = User.query.filter_by(id=uid).first()
         answer = chatmodel.get_prediction(uid[:2], str(data["input"]), user.major)
-#        log = str(answer).replace(' / ', '\n')
         log = str(answer)
         emit('reply', {"msg": log}, room=user.id)
         time = datetime.datetime.now()
-        Log.save_log(uid, self.input[uid], log, self.input_time[uid], time, None, None, None)
-        del self.input[uid]
-        del self.input_time[uid]
+        Log.save_log(uid, str(data["input"]), log, time, time, None, None, None)
+        #del self.input[uid]
+        #del self.input_time[uid]
+
+        
