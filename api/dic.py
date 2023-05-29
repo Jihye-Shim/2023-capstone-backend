@@ -12,6 +12,8 @@ import os
 df_department = pd.read_csv(os.getenv("SJU_DEPARTMENT_DATA_CSV_PATH"), encoding = 'utf-8') # 학과정보
 df_sju = pd.read_csv(os.getenv("SJU_DATA_CSV_PATH"), encoding = 'utf-8') # 세종대 정보
 df_curri = pd.read_csv(os.getenv("SJU_CURRICULUM_16_23_CSV_PATH"), encoding = 'utf-8') # 학번 별 커리큘럼
+df_pf = pd.read_csv(os.getenv("SJU_PROFESSOR_DATA_CSV_PATH"), encoding = 'utf-8') # 교수진 정보
+
 
 # 모델 embedding data load
 #em_department = cache.get('department_data.pt')
@@ -23,6 +25,7 @@ import torch
 em_department = torch.load(os.getenv("SJU_DEPARTMENT_DATA_PATH"))
 em_sju = torch.load(os.getenv("SJU_DATA_PATH"))
 em_curri = torch.load(os.getenv("SJU_CURRICULUM_16_23_PATH"))
+em_pf = torch.load(os.getenv("SJU_PROFESSOR_DATA_PATH"))
 
 # sentence_transformers local 사용 제한으로 인한 유사도 선언
 from numpy import dot
@@ -40,6 +43,9 @@ query_word_dic = list(set(query_word_dic))
 curri_word_dic = df_curri['intent'].values.tolist()
 curri_word_dic = list(set(curri_word_dic))
 
+pf_word_dic = df_pf['intent'].values.tolist()
+pf_word_dic = list(set(pf_word_dic))
+
 ## 단어사전 -> 사전 내에 질문지 해당내용 없을 경우 -> 일상대화 모델
 import urllib.request
 import pandas as pd
@@ -53,8 +59,9 @@ import matplotlib.pyplot as plt
 depart_ans_dic = df_department['answer'].values.tolist()
 query_ans_dic = df_sju['answer'].values.tolist()
 curri_ans_dic = df_curri['answer'].values.tolist()
+pf_ans_dic = df_pf['answer'].values.tolist()
 
-Univ_dict = depart_ans_dic + query_ans_dic + curri_ans_dic
+Univ_dict = depart_ans_dic + query_ans_dic + curri_ans_dic + pf_ans_dic
 for i in range(len(Univ_dict)):
     Univ_dict[i] = str(Univ_dict[i]).replace("[^ㄱ-ㅎㅏ-ㅣ가-힣 ]","")
 
@@ -84,6 +91,6 @@ top_500_items = dict(list(sorted_dictionary.items())[:500])
 #print('단어 집합의 크기 : {}'.format(len(top_500_items)))
 
 # 단어사전 구축
-Univ_dict_final = query_word_dic + depart_word_dic + curri_word_dic
+Univ_dict_final = query_word_dic + depart_word_dic + curri_word_dic + pf_word_dic
 Univ_dict_final += list(top_500_items)
 len(Univ_dict_final)

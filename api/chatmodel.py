@@ -1,4 +1,6 @@
 #from api import cache
+
+
 import numpy as np
 import torch
 import pandas as pd
@@ -41,7 +43,7 @@ def get_prediction(uid, msg, major):
     user_curri_embed = dic.em_curri[user_curri_idx]
 
     # 세 데이터프레임 합치기
-    concat_sju = pd.concat([dic.df_sju,user_DQ,user_curri])
+    concat_sju = pd.concat([dic.df_sju,user_DQ,user_curri,dic.df_pf])
 
     #print('sju_data length',len(dic.df_sju),'user department length',len(user_DQ),'user id curri',len(user_curri))
     #print('concat sju length',len(concat_sju))
@@ -49,7 +51,8 @@ def get_prediction(uid, msg, major):
     em_sju_list = dic.em_sju.tolist()
     user_depart_embed_list = user_depart_embed.tolist()
     user_curri_embed_list = user_curri_embed.tolist()
-    concat_sju_embed = em_sju_list + user_depart_embed_list + user_curri_embed_list
+    em_pf_list = dic.em_pf.tolist()
+    concat_sju_embed = em_sju_list + user_depart_embed_list + user_curri_embed_list + em_pf_list
     #print('sju_data embed length',len(em_sju_list),'user department embed length',len(user_depart_embed_list),'user curri embed list',len(user_curri_embed_list))
     #print('concat sju embed length',len(concat_sju_embed))
     
