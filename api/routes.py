@@ -7,7 +7,6 @@ from .db import db, User, Management, Button, ButtonRelation, Department, Facili
 from .weather import weather
 import os, json, redis, datetime, requests
 #from api import cache
-#from api import chatmodel
 
 main = Blueprint('main', __name__)
 
@@ -27,8 +26,10 @@ def test_model():
     result = chatmodel.get_prediction(22, input, major)
     print("답변시간")
     print(datetime.datetime.now())
-    return result, 200
+    print(result)
+    return jsonify({"reply": result}), 200
 '''
+
 #user info: token
 @main.route("/user", methods=['GET'])
 @jwt_required()
@@ -272,31 +273,77 @@ def log():
     return jsonify(result), 200
 
 # log 삭제(non-visible)
-#@main.route("/logdelete", methods=['DELETE'])
-#@jwt_required()
-#def log_delete():
-#    return 200
+@main.route("/logdelete", methods=['DELETE'])
+@jwt_required()
+def log_delete():
+    user_id = get_jwt_identity()
+    result = Log.invisible_log(user_id)
+    if result:
+        return jsonify({"msg": "deleting message success"}), 200
+    else:
+        return jsonify({"msg": "deleting message false"}), 400
+    
+# 최근 10개 공지
+@main.route("/announcement", methods=['GET'])
+def get_announcement():
+    from api import announcement_chat
+    result = announcement_chat.check_recent_announcement()
 
+    return jsonify(result), 200
 '''
-@main.route("/blackboard/authorizationcode", methods=['GET'])
+@main.route('/bb')
+def home():
+    from flask import redirect
+    server = os.getenv('BLACKBOARD_SERVER')
+    redirect_uri = 'f665-125-130-44-233.ngrok-free.app/callback'
+    client_id = os.getenv('BLACKBOARD_KEY')
+    auth_url = f'https:// {server}/learn/api/public/v1/oauth2/authorizationcode?response_type=code&client_id={client_id}&redirect_uri={redirect_uri}'
+
+    return redirect(auth_url)
+
+@main.route('/callback')
+def callback():
+    # 콜백 URL에서 인가 코드 추출
+    auth_code = request.args.get('code')
+    server = os.getenv('BLACKBOARD_SERVER')
+    # 액세스 토큰을 얻기 위한 POST 요청
+    token_url = f'https://{server}/learn/api/public/v1/oauth2/token'
+    headers = {
+        'Content-Type': 'application/x-www-form-urlencoded'
+    }
+    client_id = os.getenv('BLACKBOARD_ID')
+    client_secret = os.getenv('BLACKBOARD_SECRET')
+    data = {
+        'grant_type': 'authorization_code',
+        'code': auth_code,
+        'client_id': client_id,
+        'client_secret': client_secret,
+    }
+
+    response = requests.post(token_url, headers=headers, data=data)
+#    access_token = response.json()['access_token']
+    print(response)
+    return response.json()
+
+
+@main.route("/blackboard/authorizationcode")
 def get_auth():
     # 블랙보드 Learn API 호출을 위한 URL
     server = os.getenv('BLACKBOARD_SERVER') 
-    auth_url = server + "/learn/api/public/v1/oauth2/authorizationcode"
-
+    auth_url = "https://" + server + "/learn/api/public/v1/oauth2/authorizationcode"
     params = {
         'response_type': 'code',
-        'client_id': os.getenv('BLACKBOARD_ID'),
-        'redirect_uri': 'http://localhost:5000/callback'
+        'client_id': os.getenv('BLACKBOARD_KEY'),
+        'redirect_uri': "localhost:5000/callback"
     }
-
     response = requests.get(auth_url, params=params)
+    print(response)
     if response.status_code != 200:
         return jsonify(response.text, response.status_code)
     else:
         return response.text
     
-@main.route("/blackboard/token")
+@main.route("/blackboard/token", methods=['POST'])
 # HTTP POST request to get access token
 def get_access_token():
     import base64
@@ -307,18 +354,17 @@ def get_access_token():
     headers = {'Authorization': f'Basic {credentials}'}
 
     # Request body
-    redirect_uri = 'http://localhost:5000/callback'
-    params = {
-        'grant_type': 'authorization_code',
-        'code': session['code'],
-        'redirect_uri': redirect_uri,
-        'client_id': key,
-        'client_secret': secret
-    }
-    server = os.getenv('BLACKBOARD_SERVER') 
-    token_url = server + "/learn/api/public/v1/oauth2/token"
+    #redirect_uri = 'http://localhost:5000/callback'
+#    params = { 'grant_type': 'client_credentials' #,'client_id': key,'client_secret': secret
+#}
+    auth = (key, secret)
+    data = {'grant_type':'client_credentials' }
+    server = os.getenv('BLACKBOARD_SERVER') #"http://localhost:5000" #os.getenv('BLACKBOARD_SERVER')
+    token_url = "https://" + server + "/learn/api/public/v1/oauth2/token"
     # Send request to get access token
-    response = requests.post(token_url, headers=headers, params=params)
+    response = requests.post(token_url, headers=headers, data=data) #params=params
+    print(response)
+    return response.json()
 
     # Parse response to get access token
     if response.status_code == 200:
@@ -327,18 +373,21 @@ def get_access_token():
         return jsonify({"token": access_token})
     else:
         return {(f'Access token request failed with status code ({response.status_code}): {response.text}')}
-    
 
-@main.route('/callback')
-def callback():
-    code = request.args.get('code')
-    session['code'] = code
-    print(code)
-    print("done")
-    if code == None:
-        return 'code none'
-    return 'Authorization code received and stored securely in session.'
-
+@main.route("/blackboard", methods=['POST'])
+def test_bb():
+    sv = os.getenv('BLACKBOARD_SERVER')
+    url = f'https://{sv}/learn/api/public/v1/announcements'
+    data = request.get_json()
+    uid = data.get('id')
+    upw = data.get('pw')
+    #auth(id: str, password: str, methods: Authenticator)
+    from sejong_univ_auth import PortalSSOToken
+    result = auth(id=uid, password=upw, methods=PortalSSOToken)
+#    access_token = result
+#    headers = {'Authorization': f'Bearer' {access_token}}
+    response = request.get(url, )
+    return jsonify(result)
 
 @main.route("/blackboard/announcement")
 def get_announcement(access_token):
