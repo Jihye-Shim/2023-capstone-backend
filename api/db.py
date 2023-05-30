@@ -86,12 +86,20 @@ class Log(db.Model):
         if len(log_list) == 0:
             return None
         return result
-    '''
+    
     def invisible_log(uid):
         log_list = Log.query.filter_by(user_id=uid, visible=True).order_by(Log.input_time.asc()).all()
+        if log_list == []:
+            return None
         for list in log_list:
             list.visible=False
-    '''      
+            db.session.commit()
+        log_check = Log.query.filter_by(user_id=uid, visible=True).order_by(Log.input_time.asc()).all()
+        if log_check == []:
+            return True
+        else:
+            return False
+          
 
 #quick buttion table -> 하위버튼 o
 class Button(db.Model):

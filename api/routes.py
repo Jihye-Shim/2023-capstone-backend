@@ -278,7 +278,9 @@ def log():
 def log_delete():
     user_id = get_jwt_identity()
     result = Log.invisible_log(user_id)
-    if result:
+    if result is None:
+        return jsonify({"msg": "None visible message"}), 200
+    elif result is True:
         return jsonify({"msg": "deleting message success"}), 200
     else:
         return jsonify({"msg": "deleting message false"}), 400
