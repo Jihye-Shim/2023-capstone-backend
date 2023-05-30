@@ -18,12 +18,13 @@ def check_for_new_notice(url):
     
     # BeautifulSoup -> HTML을 파싱
     soup = BeautifulSoup(html, 'html.parser')
-    notice = []
+    notices = []
     # 공지사항 요소
     for i in range(1, 11):
         notice_elements = soup.select(f'body > div > table > tbody > tr:nth-child({i}) > td.subject > a')  # 공지사항 링크 요소를 선택합니다
         current_notices = [element.text.strip() for element in notice_elements]
-        notice.append(current_notices)
+        notice = current_notices[0]
+        notices.append(notice)
     
     # 공지사항이 없는 경우, 이전 공지사항 리스트를 초기화하고 함수 종료
     #if len(notice_elements) == 0:
@@ -53,8 +54,8 @@ def check_for_new_notice(url):
     else:
         print('추가내용이 없습니다')
     '''
-    print(notice)
-    return notice
+    print(notices)
+    return notices
 
 # 일정 간격으로 공지사항을 확인
 #while True:
