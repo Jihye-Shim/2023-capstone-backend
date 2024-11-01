@@ -1,7 +1,9 @@
 # Backend
-2023 캡스톤 백엔드
+<p>2023 캡스톤 백엔드<p/>
+<p>세종대학교 스마트 어시스턴트 챗봇 세롱이</p>
 
-## 기술 스택
+
+## 사용 기술 스택
 - Python3
 - Flask
 - Socket.IO
@@ -10,25 +12,21 @@
 - SQLAlchemy
 
 ## 구현 기능
-1. 재학생 로그인: 라이브러리 활용 https://github.com/iml1111/sejong-univ-auth
-2. 챗봇 채팅 기능(~ing)
-    1. 입출력 채팅
-    2. 퀵버튼(~ing)
-    3. 지난 로그 출력 및 삭제(-)
+1. 재학생 로그인
+2. 챗봇 채팅 기능
+    1. 유저 - AI 간 채팅 기능
+    2. 퀵버튼 기능
 3. 스마트 비서 기능
     1. 사용자 일정 저장 및 확인
-    2. 날씨 api 연동(~ing)
+    2. 교내 최신 공지사항 확인
 
-프론트엔드 연동 예정
+![ㅁㅁㅁ](https://github.com/user-attachments/assets/470b25c3-aa31-4daa-a180-c912b7b550ff)
 
 ## 접속 방법
 1. app.py 실행
 2. localhost:5000 접속
 
-## 사용 방법
-(-)
-
-# References
+## References
 python socket.io 공식 문서 https://python-socketio.readthedocs.io/en/latest/index.html
 
 채팅 기능 참고 https://github.com/iml1111/Flask-Simple-Chat
